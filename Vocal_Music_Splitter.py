@@ -6,7 +6,7 @@ import os
 import threading
 from moviepy.editor import VideoFileClip  # MP4'ü MP3'e dönüştürmek için gerekli
 
-# python -m PyInstaller --onefile --noconsole Vocal_Music_Splitter.py
+#python -m PyInstaller --onefile --noconsole --add-binary "path/to/ffmpeg.exe;." --add-data "path/to/spleeter_models;./spleeter_models" Vocal_Music_Splitter.py
 
 class AudioSplitterApp:
     def __init__(self, root):
