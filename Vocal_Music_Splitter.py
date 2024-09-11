@@ -6,7 +6,7 @@ import os
 import threading
 from moviepy.editor import VideoFileClip  # MP4'ü MP3'e dönüştürmek için gerekli
 
-#python -m PyInstaller --onefile --noconsole Vocal_Music_Splitter.py
+# python -m PyInstaller --onefile --noconsole Vocal_Music_Splitter.py
 
 class AudioSplitterApp:
     def __init__(self, root):
@@ -28,12 +28,12 @@ class AudioSplitterApp:
         self.start_button = tk.Button(root, text="Başla (MP3 Ayrıştır)", command=self.start_splitting, state=tk.DISABLED, bg="#007bff", fg="white")
         self.start_button.pack(pady=10)
 
-        self.status_label = tk.Label(root, text="Durum: Hazır", bg="#404040", fg="white")
-        self.status_label.pack(pady=10)
-
-        # Kaydedilecek dosya yolu etiketini ekliyoruz
+        # Durum ve kaydedilecek yer etiketlerini değiştirdik
         self.save_path_label = tk.Label(root, text="Kaydedilecek Yer: -", bg='#404040', fg='white')
         self.save_path_label.pack(pady=5)
+
+        self.status_label = tk.Label(root, text="Durum: Hazır", bg="#404040", fg="white")
+        self.status_label.pack(pady=10)
 
         # Yükleme çubuğu çerçevesi
         self.progress_frame = tk.Frame(root, width=400, height=25, bg="#404040")
@@ -106,8 +106,25 @@ class AudioSplitterApp:
 
     def process_audio(self, output_dir):
         try:
+            # İlk olarak Splitted klasörüne kaydediyoruz
+            splitted_dir = os.path.join(output_dir, "Splitted")
+            os.makedirs(splitted_dir, exist_ok=True)
+
+            # Şarkının adını MP3 dosyasının adından alıyoruz
+            song_name = os.path.splitext(os.path.basename(self.file_path))[0]
+            song_dir = os.path.join(output_dir, song_name)
+            os.makedirs(song_dir, exist_ok=True)
+
+            # Spleeter ile ayırma işlemi
             separator = Separator('spleeter:2stems')
-            separator.separate_to_file(self.file_path, output_dir)
+            separator.separate_to_file(self.file_path, splitted_dir)
+
+            # Ayırma işleminden sonra Splitted klasöründen şarkı klasörüne taşıyoruz
+            for file_name in os.listdir(splitted_dir):
+                full_file_name = os.path.join(splitted_dir, file_name)
+                if os.path.isfile(full_file_name):
+                    os.rename(full_file_name, os.path.join(song_dir, file_name))
+
             self.status_label.config(text="Durum: Bitti")
             self.update_progress_bar(100)
         except Exception as e:
