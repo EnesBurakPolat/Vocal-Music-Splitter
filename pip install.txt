@@ -1,2 +1,0 @@
-pip install spleeter
-pip install pydub
