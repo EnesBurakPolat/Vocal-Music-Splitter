@@ -1,0 +1,4 @@
+pip install spleeter
+pip install pydub
+Chocolatey
+choco install ffmpeg
