@@ -20,32 +20,37 @@ class LoadingScreen:
 
     def update(self):
         current_width = self.progress_bar.coords(self.bar)[2]
-        if current_width < 250:
+        if current_width < 225:  # %90'ı göstermek için 250'den 225 çıkarıyoruz
             self.progress_bar.move(self.bar, 5, 0)
             self.top.after(50, self.update)
         else:
-            self.top.destroy()
+            # %90'da takılıp kalan ekranı güncelle
+            self.top.after(500, self.finish_update)  # 500 ms sonra işlemi tamamla
+
+    def finish_update(self):
+        self.top.destroy()
 
 class AudioSplitterApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("MP3 Ses Ayrıştırıcı ve Dönüştürücü")
-        self.root.geometry("800x400")
-        self.root.configure(bg='#404040')
-
-        # Uygulama başlatıldığında yükleme ekranı göstermek için
+        self.root.withdraw()  # Ana pencereyi gizle
         self.loading_screen = LoadingScreen(self.root)
         self.root.after(2000, self.initialize_ui)  # 2 saniye sonra UI'yi başlat
 
     def initialize_ui(self):
         self.loading_screen.top.destroy()  # Yükleme ekranını kapat
+        self.root.deiconify()  # Ana pencereyi göster
+
+        self.root.title("MP3 Ses Ayrıştırıcı ve Dönüştürücü")
+        self.root.geometry("800x400")
+        self.root.configure(bg='#404040')
 
         # Model seçme butonu
         self.model_list_label = tk.Label(self.root, text="Model Seçin:", bg='#404040', fg='white')
         self.model_list_label.pack(pady=5)
 
         self.model_var = tk.StringVar(self.root)
-        self.model_var.set("Model bulunamadı")  # Varsayılan değer
+        self.model_var.set("")  # Başlangıçta boş bırak
 
         # Model seçeneklerini bul ve dropdown menüsünü oluştur
         model_files = self.find_model_files()
@@ -56,8 +61,8 @@ class AudioSplitterApp:
         self.browse_button = tk.Button(self.root, text="Göz At", command=self.select_model, bg="#ff9900", fg="white")
         self.browse_button.pack(pady=10)
 
-        # Seçilen modelin adı
-        self.model_name_label = tk.Label(self.root, text=f"Seçilen Model: {self.model_var.get()}", bg='#404040', fg='white')
+        # Seçilen modelin adı (boş bırakılacak, seçilince güncellenecek)
+        self.model_name_label = tk.Label(self.root, text=f"Seçilen Model: -", bg='#404040', fg='white')
         self.model_name_label.pack(pady=5)
 
         # Ses dosyası seçme butonu
@@ -83,26 +88,22 @@ class AudioSplitterApp:
         self.model_path = None
         self.processing_thread = None
 
-        # Varsayılan model yolunu belirle
-        self.default_model = "2stems-finetune.tar.gz"
-        self.model_path = os.path.join(self.find_model_dir(), self.default_model)
-        self.model_var.set(self.default_model)
-
     def find_model_files(self):
         script_dir = os.path.dirname(os.path.abspath(__file__))
         models_dir = os.path.join(script_dir, 'models')
         model_files = [f for f in os.listdir(models_dir) if f.endswith('.tar.gz')]
-        
+
         if model_files:
             return model_files
         return ["Model bulunamadı"]
 
+    def update_model(self, selected_model):
+        if selected_model != "Model bulunamadı":
+            self.model_path = os.path.join(self.find_model_dir(), selected_model)
+            self.model_name_label.config(text=f"Seçilen Model: {selected_model}")
+
     def find_model_dir(self):
         return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models')
-
-    def update_model(self, selected_model):
-        self.model_path = os.path.join(self.find_model_dir(), selected_model)
-        self.model_name_label.config(text=f"Seçilen Model: {selected_model}")
 
     def select_model(self):
         self.model_path = filedialog.askopenfilename(filetypes=[("Tar.gz Files", "*.tar.gz")])
@@ -135,7 +136,6 @@ class AudioSplitterApp:
         self.status_label.config(text="Durum: İşleniyor")
         self.update_progress_bar(0)
 
-        # Yükleme ekranını göster
         self.loading_screen = LoadingScreen(self.root)
         self.processing_thread = threading.Thread(target=self.process_audio, args=(output_dir,))
         self.processing_thread.start()
@@ -145,18 +145,19 @@ class AudioSplitterApp:
             splitted_dir = os.path.join(output_dir, "Splitted")
             os.makedirs(splitted_dir, exist_ok=True)
 
-            # Seçilen model dosyası
             selected_model = self.model_var.get()
             model_name = selected_model.split('.')[0]  # Uzantıyı kaldır
 
-            # Spleeter ile ayırma işlemi
-            separator = Separator(f'spleeter:{model_name.split("-")[0]}')  # 2stems, 4stems veya 5stems gibi
-            # Simülasyon: İşlem süresi ve ilerleme güncellemesi
+            separator = Separator(f'spleeter:{model_name.split("-")[0]}')
             total_steps = 100
             for i in range(total_steps):
-                time.sleep(0.05)  # Simülasyon için bekleme
-                self.update_progress_bar((i + 1) * (100 // total_steps))
-            
+                time.sleep(0.2)
+                progress = (i + 1) * (100 // total_steps)
+                if progress < 90:
+                    self.update_progress_bar(progress)
+                else:
+                    self.update_progress_bar(90)
+
             separator.separate_to_file(self.file_path, splitted_dir)
 
             self.status_label.config(text="Durum: Bitti")
@@ -166,7 +167,7 @@ class AudioSplitterApp:
             self.status_label.config(text="Durum: Hazır")
         finally:
             self.start_button.config(state=tk.NORMAL)
-            self.loading_screen.top.destroy()  # Yükleme ekranını kapat
+            self.loading_screen.top.destroy()
 
     def update_progress_bar(self, progress):
         self.progress_bar.delete("all")
