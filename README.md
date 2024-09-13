@@ -1,3 +1,3 @@
 # Vocal-Music-Splitter
 
-<img src="https://github.com/user-attachments/assets/fee666f7-5ce7-41ba-9ba5-6eb58bf8e1ce" alt="ss2Capture" width="600">
+<img src="https://github.com/user-attachments/assets/1ed8165e-6a4b-4d10-b56e-261669ec9e5a" alt="ss2Capture" width="600">
